@@ -1,0 +1,4 @@
+[env]
+# ts-rs 在跑测试时导出 TS 类型。让它直接写进前端的 protocol 包，
+# 而不是默认的 crates/protocol/bindings/ 目录。scripts/gen-protocol 会覆盖这个值。
+TS_RS_EXPORT_DIR = { value = "../client/packages/protocol/src/generated", relative = true }

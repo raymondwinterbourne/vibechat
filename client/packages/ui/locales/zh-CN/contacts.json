@@ -1,0 +1,70 @@
+{
+  "title": "通讯录",
+  "empty": "还没有好友",
+  "emptyHint": "点右上角的按钮，按 ID 添加好友",
+  "noMatch": "没有匹配的好友",
+  "placeholder": "选择一位好友查看资料",
+  "filter": "筛选好友",
+  "back": "返回通讯录",
+  "newRequests_one": "{{count}} 条新的好友申请",
+  "newRequests_other": "{{count}} 条新的好友申请",
+  "add": {
+    "title": "添加好友",
+    "handle": "对方的 ID",
+    "find": "查找",
+    "message": "验证信息",
+    "messagePlaceholder": "可以不填",
+    "defaultMessage": "我是{{nickname}}",
+    "send": "发送申请",
+    "sendAgain": "再次发送",
+    "sent": "申请已发送",
+    "myself": "这是你自己",
+    "alreadyFriend": "你们已经是好友了",
+    "alreadySent": "你已经向对方发过申请，对方还没有处理。再次发送会更新验证信息。",
+    "theyAsked": "对方已经向你发了好友申请",
+    "viewProfile": "查看资料"
+  },
+  "requests": {
+    "title": "新的朋友",
+    "kind": "申请的方向",
+    "received": "收到的",
+    "sent": "发出的",
+    "noneReceived": "还没有收到好友申请",
+    "noneReceivedHint": "别人按你的 ID 找到你并发来申请后，会出现在这里",
+    "noneSent": "还没有发出过好友申请",
+    "noneSentHint": "点通讯录右上角的按钮，按 ID 添加好友",
+    "accept": "同意",
+    "reject": "拒绝",
+    "acceptFrom": "同意 {{name}} 的好友申请",
+    "rejectFrom": "拒绝 {{name}} 的好友申请",
+    "status": {
+      "pending": "等待对方处理",
+      "accepted": "已同意",
+      "rejected": "已拒绝"
+    },
+    "nowFriends": "已添加 {{name}} 为好友"
+  },
+  "friend": {
+    "title": "详细资料",
+    "nickname": "昵称",
+    "handle": "ID",
+    "signature": "个性签名",
+    "noSignature": "没有填写",
+    "sendMessage": "发消息",
+    "setRemark": "设置备注",
+    "remark": "备注名",
+    "remarkHint": "只有你自己看得到。留空则显示对方的昵称",
+    "remove": "删除好友",
+    "removeTitle": "删除好友？",
+    "removeExplain": "删除后，你和 {{name}} 都不再是对方的好友。",
+    "removed": "已删除好友"
+  },
+  "groups": {
+    "title": "群聊",
+    "empty": "你还没有加入任何群",
+    "memberCount": "{{count}} 人",
+    "emptyHint": "在“聊天”里点右上角的按钮发起群聊"
+  },
+  "self": "{{name}}（我）",
+  "index": "字母索引"
+}

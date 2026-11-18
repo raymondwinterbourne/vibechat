@@ -1,0 +1,15 @@
+# 端到端测试的镜像：只在跑测试时用。
+#
+# 基于 Playwright 官方镜像，里面已经装好 Chrome、Firefox、Safari 三种浏览器内核、它们要的系统库
+# （包括中文字体）和 Node。这个版本号必须和 client/e2e 里 @playwright/test 的版本一样，升级时两处一起改。
+ARG PLAYWRIGHT_VERSION=1.63.0
+FROM mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble
+
+ENV LANG=C.UTF-8 \
+    COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable
+
+# 官方镜像自带非特权用户 pwuser，测试以它运行
+USER pwuser
+WORKDIR /vibechat/client
+CMD ["sleep", "infinity"]

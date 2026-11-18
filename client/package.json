@@ -1,0 +1,19 @@
+{
+  "name": "vibechat-client",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@12.8.1",
+  "scripts": {
+    "dev": "pnpm --filter @vibechat/web dev",
+    "build": "pnpm --filter @vibechat/web build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "biome check --error-on-warnings . && node scripts/check-theme-colors.mjs",
+    "format": "biome check --write .",
+    "test": "pnpm -r --if-present test",
+    "test:e2e": "pnpm --filter @vibechat/e2e e2e"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.15"
+  }
+}

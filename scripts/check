@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# 提交前的总检查：格式、静态检查、类型、测试。在容器里执行，任何一项失败都以失败退出。
+#
+# 数据层的测试默认只在 SQLite 上跑。设置 TEST_PG_URL 后同时在 PostgreSQL 上跑；
+# 再设置 REQUIRE_PG=1，则缺少 TEST_PG_URL 会被当作失败（全量测试用）。
+set -euo pipefail
+
+root="$(cd "$(dirname "$0")/.." && pwd)"
+step() { printf '\n==> %s\n' "$1"; }
+
+cd "$root/server"
+step "后端：格式"
+cargo fmt --check
+step "后端：静态检查"
+cargo clippy --workspace --all-targets -- -D warnings
+step "后端：测试"
+cargo test --workspace
+
+step "协议类型：生成结果与仓库中的一致"
+"$root/scripts/gen-protocol" --check
+
+cd "$root/client"
+step "前端：格式和代码检查"
+pnpm lint
+step "前端：类型检查"
+pnpm typecheck
+step "前端：测试"
+pnpm test
+
+printf '\n全部检查通过\n'

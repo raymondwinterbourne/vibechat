@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# 重新截 README 里的截图：造好示例数据，中文、英文各截一套，放进 docs/images/。
+# 在宿主机上、仓库的根目录执行（要用 docker compose，和 scripts/test-all 一样）：
+#
+#   ./scripts/screenshots
+#
+# 截图的内容和步骤见 client/e2e/screenshots/readme.spec.ts。
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+out=client/e2e/screenshots-out
+rm -rf "$out"
+./scripts/test-all --e2e-only --config=screenshots.config.ts
+
+mkdir -p docs/images
+for language in en zh-CN; do
+  for name in chat phone group-call admin; do
+    cp "$out/$language/$name.png" "docs/images/$name.$language.png"
+  done
+done
+echo "截图已更新：docs/images/"

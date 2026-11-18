@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# 从 Rust 的协议类型生成 TS 类型，输出到 client/packages/protocol。在容器里执行。
+#
+# 加 --check 时不改动任何文件，只检查仓库里的生成结果是否与当前的 Rust 类型一致。
+set -euo pipefail
+
+root="$(cd "$(dirname "$0")/.." && pwd)"
+pkg="$root/client/packages/protocol/src"
+
+generate() {
+  local dir="$1"
+  rm -rf "$dir/generated"
+  # ts-rs 为每个 #[ts(export)] 类型生成一个 export_bindings_* 测试，运行它就会写出 .ts 文件
+  (cd "$root/server" && TS_RS_EXPORT_DIR="$dir/generated" cargo test -q -p vibechat-protocol export_bindings >/dev/null)
+  # 入口文件导出全部类型
+  {
+    echo "// 由 scripts/gen-protocol 生成，不要手改"
+    for f in "$dir"/generated/*.ts; do
+      echo "export type * from './generated/$(basename "$f" .ts)'"
+    done
+  } > "$dir/index.ts"
+}
+
+if [ "${1:-}" = "--check" ]; then
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "$tmp"' EXIT
+  generate "$tmp"
+  if ! diff -r "$tmp" "$pkg" >/dev/null; then
+    echo "协议类型已变化，请运行 scripts/gen-protocol 并提交生成的文件：" >&2
+    diff -r "$tmp" "$pkg" | head -20 >&2 || true
+    exit 1
+  fi
+  echo "一致"
+else
+  generate "$pkg"
+  echo "generated: $(ls "$pkg/generated" | tr '\n' ' ')"
+fi

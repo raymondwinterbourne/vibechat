@@ -1,0 +1,299 @@
+#!/usr/bin/env bash
+# 把本机的代码和桌面端的安装包同步到服务器。在 Mac 上执行，不在容器里：要用到本机的密钥和网络。
+# 同步到哪台服务器、怎么连、怎么部署，都写在配置文件里，脚本本身与环境无关。
+#
+# 用法：
+#   scripts/deploy status             对比本机和服务器：代码的提交、安装包；服务是否正常
+#   scripts/deploy code [--rebuild]   推送代码，在服务器上构建并重启，再从外面验证。
+#                                     服务器已经是本机的提交时什么都不做；--rebuild 照样重新构建
+#   scripts/deploy dmg [文件] [--force]
+#                                     把安装包传到服务器，放上去就能在"设置 → 关于"里下载，不用重启。
+#                                     默认传 client/apps/desktop/out 里版本号最高的那一个；
+#                                     服务器上已有同样内容的就跳过；同名但内容不同时要加 --force
+#   scripts/deploy all                code，然后 dmg
+#   scripts/deploy ssh [命令…]         登录服务器，或在上面执行一条命令
+#
+# 配置文件默认是 scripts/deploy.conf（不进 git），照 scripts/deploy.conf.example 写。
+# 用别的配置文件：DEPLOY_CONF=文件 scripts/deploy …
+#
+# code、dmg、all 的输出同时记在 data/deploy-logs/ 里。
+set -euo pipefail
+
+root="$(cd "$(dirname "$0")/.." && pwd)"
+
+step() { printf '\n==> %s\n' "$1"; }
+fail() { echo "错误：$1" >&2; exit 1; }
+
+# ---------- 配置 ----------
+
+conf="${DEPLOY_CONF:-$root/scripts/deploy.conf}"
+[ -f "$conf" ] || fail "找不到配置文件 ${conf}。照 scripts/deploy.conf.example 写一份"
+DEPLOY_NAME="" DEPLOY_HOST="" DEPLOY_USER="" DEPLOY_KEY="" DEPLOY_PORT=""
+DEPLOY_REPO="" DEPLOY_COMMAND="" DEPLOY_DMG_DIR="" DEPLOY_CONTAINER="" DEPLOY_URL=""
+# shellcheck source=/dev/null
+. "$conf"
+
+for v in DEPLOY_HOST DEPLOY_REPO DEPLOY_COMMAND DEPLOY_DMG_DIR DEPLOY_URL; do
+  [ -n "${!v}" ] || fail "配置文件 ${conf} 里没有填 ${v}"
+done
+name="${DEPLOY_NAME:-$DEPLOY_HOST}"
+url="${DEPLOY_URL%/}"
+
+target="$DEPLOY_HOST"
+[ -z "$DEPLOY_USER" ] || target="$DEPLOY_USER@$DEPLOY_HOST"
+
+ssh_opts=(-o ConnectTimeout=10 -o ServerAliveInterval=30 -o StrictHostKeyChecking=accept-new)
+if [ -n "$DEPLOY_KEY" ]; then
+  key="${DEPLOY_KEY/#\~/$HOME}"
+  [ -f "$key" ] || fail "找不到密钥 ${key}（配置文件 ${conf} 里的 DEPLOY_KEY）"
+  ssh_opts+=(-i "$key" -o IdentitiesOnly=yes)
+fi
+# ssh 用 -p 指定端口，scp 用 -P：分开放
+port_ssh=() port_scp=()
+if [ -n "$DEPLOY_PORT" ]; then
+  port_ssh=(-p "$DEPLOY_PORT")
+  port_scp=(-P "$DEPLOY_PORT")
+fi
+
+remote() { ssh "${ssh_opts[@]}" ${port_ssh[@]+"${port_ssh[@]}"} "$target" "$@"; }
+
+start_log() {
+  mkdir -p "$root/data/deploy-logs"
+  local log
+  log="$root/data/deploy-logs/${name}-$(date +%Y%m%d-%H%M%S)-${1}.log"
+  exec > >(tee -a "$log") 2>&1
+  echo "# 同步到 ${name}（${target}）：${1}，$(date '+%Y-%m-%d %H:%M:%S')，日志：${log}"
+}
+
+# ---------- 代码 ----------
+
+# 服务器上检出的提交，以及有没有没提交的改动（只看进了 git 的文件）
+remote_head() { remote "git -C '$DEPLOY_REPO' rev-parse HEAD"; }
+remote_dirty() { remote "git -C '$DEPLOY_REPO' status --porcelain --untracked-files=no | wc -l" | tr -d ' '; }
+
+health() {
+  curl -fsS --max-time 10 "$url/api/health" 2>/dev/null || true
+}
+
+container_state() {
+  [ -n "$DEPLOY_CONTAINER" ] || return 0
+  remote "docker inspect -f '容器 {{.Name}}：重启次数 {{.RestartCount}}，状态 {{.State.Status}}，启动于 {{.State.StartedAt}}' '$DEPLOY_CONTAINER'" 2>/dev/null \
+    || echo "（取不到容器 ${DEPLOY_CONTAINER} 的状态）"
+}
+
+show_code_status() {
+  local local_head server_head
+  local_head="$(git -C "$root" rev-parse HEAD)"
+  server_head="$(remote_head)"
+  echo "本机：  $(git -C "$root" log -1 --format='%h %s' HEAD)"
+  if git -C "$root" cat-file -e "${server_head}^{commit}" 2>/dev/null; then
+    echo "服务器：$(git -C "$root" log -1 --format='%h %s' "$server_head")"
+  else
+    echo "服务器：${server_head:0:7}（本机没有这个提交）"
+  fi
+  if [ "$local_head" = "$server_head" ]; then
+    echo "代码一致"
+  elif git -C "$root" merge-base --is-ancestor "$server_head" "$local_head" 2>/dev/null; then
+    echo "本机领先 $(git -C "$root" rev-list --count "${server_head}..${local_head}") 个提交，还没同步："
+    git -C "$root" log --oneline "${server_head}..${local_head}" | sed 's/^/  /'
+  else
+    echo "两边分叉了，或者服务器上有本机没有的提交"
+  fi
+  if [ -n "$(git -C "$root" status --porcelain --untracked-files=no)" ]; then
+    echo "本机有没提交的改动（不会被同步）"
+  fi
+  local dirty
+  dirty="$(remote_dirty)"
+  [ "$dirty" = "0" ] || echo "注意：服务器上的代码有 ${dirty} 处没提交的改动，推送会被拒绝"
+}
+
+sync_code() {
+  local rebuild="${1:-}"
+
+  step "检查本机"
+  local branch
+  branch="$(git -C "$root" rev-parse --abbrev-ref HEAD)"
+  [ "$branch" = "main" ] || fail "当前在 ${branch} 分支，只同步 main"
+  [ -z "$(git -C "$root" status --porcelain --untracked-files=no)" ] \
+    || fail "有没提交的改动。先提交，服务器上跑的才是确定的某个提交"
+  local local_head server_head
+  local_head="$(git -C "$root" rev-parse HEAD)"
+  echo "要同步的：$(git -C "$root" log -1 --format='%h %s' HEAD)"
+  if ! git -C "$root" merge-base --is-ancestor HEAD origin/main 2>/dev/null; then
+    echo "提醒：这个提交还没有推到 origin"
+  fi
+
+  step "检查服务器"
+  server_head="$(remote_head)"
+  local dirty
+  dirty="$(remote_dirty)"
+  [ "$dirty" = "0" ] || fail "服务器上的代码有 ${dirty} 处没提交的改动，推送会被拒绝。先登上去看看是谁改的"
+
+  if [ "$server_head" = "$local_head" ]; then
+    echo "服务器已经是这个提交"
+    if [ "$rebuild" != "--rebuild" ]; then
+      echo "不用同步。要重新构建并重启，加 --rebuild"
+      return 0
+    fi
+  else
+    git -C "$root" cat-file -e "${server_head}^{commit}" 2>/dev/null \
+      || fail "服务器上是 ${server_head:0:7}，本机没有这个提交。先弄清楚它是从哪里来的"
+    git -C "$root" merge-base --is-ancestor "$server_head" "$local_head" \
+      || fail "服务器上的 ${server_head:0:7} 不在本机 main 的历史里，不能直接推"
+    echo "服务器上是：$(git -C "$root" log -1 --format='%h %s' "$server_head")"
+    echo "这次带上的提交："
+    git -C "$root" log --oneline "${server_head}..${local_head}" | sed 's/^/  /'
+
+    step "推送代码"
+    # 服务器上的仓库设了 receive.denyCurrentBranch=updateInstead：推过去就更新检出的文件。
+    # 这时运行着的还是旧程序，下一步构建并重启之后才换成新的
+    GIT_SSH_COMMAND="ssh $(printf '%q ' "${ssh_opts[@]}" ${port_ssh[@]+"${port_ssh[@]}"})" \
+      git -C "$root" push "${target}:${DEPLOY_REPO}" main:main
+  fi
+
+  step "在服务器上构建并重启（${DEPLOY_COMMAND}）"
+  remote "$DEPLOY_COMMAND"
+
+  step "验证（从外面）"
+  local h
+  h="$(health)"
+  echo "${url}/api/health：${h:-（没有应答）}"
+  case "$h" in *'"status":"ok"'*) ;; *) fail "服务没有正常应答" ;; esac
+  server_head="$(remote_head)"
+  [ "$server_head" = "$local_head" ] || fail "服务器上检出的是 ${server_head:0:7}，不是 ${local_head:0:7}"
+  echo "服务器上的代码：$(git -C "$root" log -1 --format='%h %s' "$server_head")"
+  container_state
+  echo "代码同步完成"
+}
+
+# ---------- 安装包 ----------
+
+dmg_dir="$root/client/apps/desktop/out"
+
+# 本机版本号最高的安装包
+latest_dmg() {
+  ls "$dmg_dir"/VibeChat-*-arm64.dmg 2>/dev/null | sort -V | tail -1
+}
+
+remote_sha() {
+  remote "if [ -f '$1' ]; then sha256sum '$1' | cut -d' ' -f1; fi"
+}
+
+list_remote_dmgs() {
+  remote "cd '$DEPLOY_DMG_DIR' 2>/dev/null && for f in *.dmg; do [ -f \"\$f\" ] && echo \"  \${f}（\$(du -h \"\$f\" | cut -f1)，\$(date -r \"\$f\" '+%Y-%m-%d %H:%M')）\"; done; true"
+}
+
+show_dmg_status() {
+  local dmg
+  dmg="$(latest_dmg)"
+  if [ -n "$dmg" ]; then
+    echo "本机最新：$(basename "$dmg")（$(du -h "$dmg" | cut -f1 | tr -d ' ')，$(date -r "$dmg" '+%Y-%m-%d %H:%M')）"
+  else
+    echo "本机：${dmg_dir} 里没有安装包"
+  fi
+  echo "服务器上（${DEPLOY_DMG_DIR}）："
+  list_remote_dmgs
+  if [ -n "$dmg" ]; then
+    local local_sha server_sha base
+    base="$(basename "$dmg")"
+    local_sha="$(shasum -a 256 "$dmg" | cut -d' ' -f1)"
+    server_sha="$(remote_sha "${DEPLOY_DMG_DIR}/${base}")"
+    if [ -z "$server_sha" ]; then
+      echo "服务器上还没有 ${base}"
+    elif [ "$local_sha" = "$server_sha" ]; then
+      echo "${base} 两边内容一致"
+    else
+      echo "${base} 两边同名但内容不同"
+    fi
+  fi
+}
+
+sync_dmg() {
+  local dmg="" force=""
+  for a in "$@"; do
+    case "$a" in
+      --force) force=1 ;;
+      *) dmg="$a" ;;
+    esac
+  done
+  [ -n "$dmg" ] || dmg="$(latest_dmg)"
+  [ -n "$dmg" ] || fail "${dmg_dir} 里没有安装包。先在容器里打包，再在 Mac 上 client/apps/desktop/scripts/mac dmg"
+  [ -f "$dmg" ] || fail "找不到 ${dmg}"
+  local base
+  base="$(basename "$dmg")"
+  case "$base" in
+    VibeChat-*-arm64.dmg) ;;
+    *) fail "文件名要形如 VibeChat-x.y.z-arm64.dmg，服务端按文件名里的版本号挑最新的" ;;
+  esac
+
+  step "对比安装包：${base}"
+  local local_sha server_sha
+  local_sha="$(shasum -a 256 "$dmg" | cut -d' ' -f1)"
+  server_sha="$(remote_sha "${DEPLOY_DMG_DIR}/${base}")"
+  echo "本机：${local_sha}（$(du -h "$dmg" | cut -f1 | tr -d ' ')）"
+  echo "服务器：${server_sha:-（没有）}"
+  if [ "$local_sha" = "$server_sha" ]; then
+    echo "服务器上已经是同样的文件，不用传"
+    return 0
+  fi
+  if [ -n "$server_sha" ] && [ -z "$force" ]; then
+    fail "服务器上有同名但内容不同的 ${base}。版本号没变，已经装了这个版本的人不会收到更新提示。确实要覆盖，加 --force"
+  fi
+
+  step "上传"
+  # 先用别的名字传，核对校验值之后再改成正式的名字：服务器不会把传到一半的文件交给人下载
+  remote "mkdir -p '$DEPLOY_DMG_DIR'"
+  scp "${ssh_opts[@]}" ${port_scp[@]+"${port_scp[@]}"} "$dmg" "${target}:${DEPLOY_DMG_DIR}/${base}.part"
+  server_sha="$(remote_sha "${DEPLOY_DMG_DIR}/${base}.part")"
+  if [ "$server_sha" != "$local_sha" ]; then
+    remote "rm -f '${DEPLOY_DMG_DIR}/${base}.part'"
+    fail "传上去的文件校验值不对（${server_sha}），已删掉，请重试"
+  fi
+  remote "mv '${DEPLOY_DMG_DIR}/${base}.part' '${DEPLOY_DMG_DIR}/${base}'"
+  echo "校验值一致，已放好：${DEPLOY_DMG_DIR}/${base}"
+  echo "服务器上现在有："
+  list_remote_dmgs
+  echo "旧版本的安装包可以删掉，只留最新的（scripts/deploy ssh rm ${DEPLOY_DMG_DIR}/旧的文件名）"
+}
+
+# ---------- 入口 ----------
+
+cmd="${1:-}"
+[ $# -gt 0 ] && shift
+
+case "$cmd" in
+  status)
+    echo "# ${name}（${target}），配置：${conf}"
+    step "代码"
+    show_code_status
+    step "服务"
+    h="$(health)"
+    echo "${url}/api/health：${h:-（没有应答）}"
+    container_state
+    step "桌面端安装包"
+    show_dmg_status
+    ;;
+  code)
+    start_log code
+    sync_code "${1:-}"
+    ;;
+  dmg)
+    start_log dmg
+    sync_dmg "$@"
+    ;;
+  all)
+    start_log all
+    sync_code
+    sync_dmg
+    ;;
+  ssh)
+    if [ $# -eq 0 ]; then
+      exec ssh -t "${ssh_opts[@]}" ${port_ssh[@]+"${port_ssh[@]}"} "$target"
+    fi
+    exec ssh "${ssh_opts[@]}" ${port_ssh[@]+"${port_ssh[@]}"} "$target" "$@"
+    ;;
+  *)
+    sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'
+    exit 1
+    ;;
+esac

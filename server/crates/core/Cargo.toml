@@ -1,0 +1,26 @@
+[package]
+name = "vibechat-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+async-trait.workspace = true
+base64.workspace = true
+bytes.workspace = true
+futures-util.workspace = true
+getrandom.workspace = true
+hmac.workspace = true
+sha1.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+uuid.workspace = true
+
+[features]
+# 内存里的假实现，供本 crate 和服务端的测试使用
+testing = []
+
+[dev-dependencies]
+tokio.workspace = true

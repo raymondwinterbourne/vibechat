@@ -1,0 +1,29 @@
+[package]
+name = "vibechat-infra"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+vibechat-core.workspace = true
+vibechat-migration.workspace = true
+
+argon2.workspace = true
+async-trait.workspace = true
+bytes.workspace = true
+futures-util.workspace = true
+image.workspace = true
+lettre.workspace = true
+object_store.workspace = true
+sea-orm.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+tokio.workspace = true
+url.workspace = true

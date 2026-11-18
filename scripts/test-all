@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+# 全量测试。在宿主机上、仓库的根目录执行（要用 docker compose）：
+#
+#   ./scripts/test-all                      全部：检查、数据层在 SQLite 和 PostgreSQL 上的测试、
+#                                           Chrome、Safari 两种浏览器内核里的端到端测试
+#   ./scripts/test-all --e2e-only [参数…]    只跑端到端测试，后面的参数交给 Playwright，
+#                                           例如 ./scripts/test-all --e2e-only tests/chats.spec.ts --project chromium
+#   ./scripts/test-all --check-only         只跑检查和两种数据库上的测试
+#
+# 测试用的 PostgreSQL、中转服务、媒体转发服务和那一套前后端只在这期间存在，结束后自动清理。
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+mode=all
+case "${1:-}" in
+  --e2e-only) mode=e2e; shift ;;
+  --check-only) mode=check; shift ;;
+esac
+
+compose() { docker compose --profile test "$@"; }
+in_dev() { docker compose exec -T "$@"; }
+step() { printf '\n\033[1m==> %s\033[0m\n' "$1"; }
+
+cleanup() {
+  in_dev dev pkill -f scripts/e2e-stack >/dev/null 2>&1 || true
+  compose rm -sf pg-test turn-test livekit-test >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+
+# 等某个条件成立，最多等指定的秒数
+wait_for() {
+  local seconds="$1"
+  shift
+  for _ in $(seq "$seconds"); do
+    if "$@" >/dev/null 2>&1; then return 0; fi
+    sleep 1
+  done
+  return 1
+}
+
+docker compose up -d dev >/dev/null
+
+if [ "$mode" != e2e ]; then
+  step "启动测试用的 PostgreSQL"
+  compose up -d pg-test >/dev/null
+  wait_for 60 compose exec -T pg-test pg_isready -U postgres || {
+    echo "PostgreSQL 没有在 60 秒内就绪" >&2
+    exit 1
+  }
+
+  step "检查和测试（数据层在两种数据库上）"
+  # 并行链接太多会把容器的内存吃光，链接器被杀掉
+  in_dev -e CARGO_BUILD_JOBS=4 -e TEST_PG_URL=postgres://postgres:test@pg-test:5432/postgres -e REQUIRE_PG=1 \
+    dev ./scripts/check
+  if [ "$mode" = check ]; then
+    printf '\n\033[1m检查和测试通过\033[0m\n'
+    exit 0
+  fi
+fi
+
+step "启动端到端测试用的中转服务和媒体转发服务"
+compose up -d turn-test livekit-test >/dev/null
+wait_for 30 in_dev dev curl -fsS http://127.0.0.1:7890/ || {
+  echo "LiveKit 没有在 30 秒内启动，日志如下：" >&2
+  compose logs --tail 20 livekit-test >&2 || true
+  exit 1
+}
+
+step "启动端到端测试用的前后端"
+in_dev -d dev bash -c './scripts/e2e-stack > /tmp/e2e-stack.log 2>&1'
+wait_for 300 in_dev dev curl -fsS http://127.0.0.1:3490/api/health || {
+  echo "端到端测试用的前后端没有在 300 秒内启动，日志如下：" >&2
+  in_dev dev tail -30 /tmp/e2e-stack.log >&2 || true
+  exit 1
+}
+
+step "端到端测试（Chrome、Safari 两种内核）"
+compose run --rm -T e2e pnpm test:e2e "$@"
+
+if [ "$mode" = e2e ]; then
+  printf '\n\033[1m端到端测试通过\033[0m\n'
+else
+  printf '\n\033[1m全量测试通过\033[0m\n'
+fi

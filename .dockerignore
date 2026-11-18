@@ -1,0 +1,13 @@
+# 构建生产镜像时（deploy/Dockerfile，上下文是仓库根目录）不需要的东西
+**/node_modules
+**/dist
+server/target
+data
+dev/downloads
+client/e2e/test-results
+client/e2e/playwright-report
+client/apps/desktop/out
+.git
+.env
+compose.override.yaml
+deploy/.env

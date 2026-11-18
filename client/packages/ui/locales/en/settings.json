@@ -1,0 +1,113 @@
+{
+  "title": "Settings",
+  "profile": {
+    "title": "Profile",
+    "changeAvatar": "Change avatar",
+    "avatarUpdated": "Avatar updated",
+    "nickname": "Nickname",
+    "signature": "Signature",
+    "id": "ID",
+    "changeId": "Change",
+    "changeIdTitle": "Change ID",
+    "newId": "New ID",
+    "idHint": "6 to 20 characters, starting with a letter, using only letters, digits and underscores. You'll log in with the new ID afterwards.",
+    "idUpdated": "ID changed"
+  },
+  "account": {
+    "title": "Account",
+    "changePassword": "Change password",
+    "logout": "Log out"
+  },
+  "admin": {
+    "title": "Administration",
+    "open": "Open administration"
+  },
+  "adminEmail": {
+    "title": "Administrator email",
+    "explain": "If you forget the password, the reset link is sent to this address.",
+    "none": "Not set",
+    "change": "Change",
+    "changeTitle": "Change email address",
+    "newEmail": "New email address",
+    "currentPassword": "Current password",
+    "submit": "Send confirmation email",
+    "sent": "A confirmation email was sent to {{email}}. The new address takes effect once you open the link in it."
+  },
+  "appearance": {
+    "title": "Appearance",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "language": {
+    "title": "Language"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "system": "System notifications",
+    "on": "On",
+    "off": "Off",
+    "explain": "When the page is in the background, new messages and friend requests show a system notification. This setting applies only to this browser on this device.",
+    "denied": "The browser has blocked notifications for this site. To turn them on, open the site settings next to the address bar, allow notifications, then reload the page.",
+    "unsupported": "This browser doesn't support system notifications."
+  },
+  "about": {
+    "title": "About",
+    "server": "Server",
+    "checking": "Checking…",
+    "ok": "Running, version {{version}}",
+    "degraded": "Database unavailable, version {{version}}",
+    "desktop": {
+      "title": "Desktop app",
+      "installed": "Version {{version}}",
+      "available": "For macOS, {{version}}, {{size}}",
+      "newer": "Version {{version}} is available, {{size}}",
+      "download": "Download",
+      "requirement": "For Macs with Apple silicon (M series) only.",
+      "install": "To install: open the downloaded file and drag VibeChat into Applications.",
+      "firstOpen": "The first time you open it, macOS will say it can't be verified: go to System Settings → Privacy & Security and click “Open Anyway”.",
+      "update": "To update: quit VibeChat, open the newly downloaded file, drag it into Applications and choose “Replace”.",
+      "prompt": "VibeChat now has a Mac app: get your messages even with the window closed.",
+      "entry": "Download the desktop app",
+      "entryUpdate": "Desktop app update available",
+      "updatePrompt": "Desktop app {{version}} is available",
+      "later": "Later",
+      "tooOldTitle": "Desktop app update needed",
+      "tooOld": "{{feature}} needs version {{required}} or later of the desktop app. You have {{installed}}.",
+      "mustUpdateTitle": "Please update the desktop app",
+      "mustUpdate": "This version of the desktop app ({{installed}}) can no longer be used. Please update to {{required}} or later.",
+      "noInstaller": "There's no newer version to download yet. Please contact your administrator.",
+      "downloading": "Downloading {{percent}}% ({{received}} / {{total}})",
+      "cancelDownload": "Cancel download",
+      "downloaded": "Downloaded. Save it in the window that opened, then open it and follow the steps below.",
+      "downloadFailed": "The download didn't finish. Check your connection and try again.",
+      "retryDownload": "Download again"
+    },
+    "page": "Page",
+    "build": "build {{build}}",
+    "development": "development",
+    "releases": "What's new"
+  },
+  "devices": {
+    "title": "Signed-in devices",
+    "current": "This device",
+    "online": "Online",
+    "unknown": "Unknown device",
+    "desktop": "Desktop app {{version}}",
+    "desktopUnknown": "Desktop app",
+    "signedInAt": "Signed in {{time}}",
+    "lastActive": "Active {{time}}",
+    "justNow": "just now",
+    "ip": "IP {{ip}}",
+    "signOut": "Sign out",
+    "signOutOthers": "Sign out all other devices",
+    "only": "You're only signed in on this device.",
+    "confirmOne": "Sign out this device?",
+    "confirmOneText": "{{device}} will be signed out right away and will need to sign in again.",
+    "confirmOthers": "Sign out all other devices?",
+    "confirmOthersText": "You'll be signed out right away everywhere except on this device.",
+    "done": "That device has been signed out",
+    "doneOthers_one": "Signed out {{count}} device",
+    "doneOthers_other": "Signed out {{count}} devices"
+  }
+}

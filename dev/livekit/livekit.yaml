@@ -1,0 +1,32 @@
+# 手工试群通话时用的媒体转发服务（LiveKit）。docker compose --profile calls up -d 时启动。
+# 单台机器，不用 Redis：不写 redis 一节就是单机模式。和开发容器共用网络。
+
+# 控制用的端口：只在容器里面用。浏览器连网页地址下的 /livekit，由前端的开发服务器转过来；
+# 服务端也通过它把人请出房间、关闭房间
+port: 7980
+bind_addresses:
+  - 127.0.0.1
+
+rtc:
+  # 声音和画面走这两个端口：UDP 7982，UDP 不通时用 TCP 7981。compose.yaml 把它们开在宿主机上，
+  # 宿主机上的端口号必须和这里一样（LiveKit 告诉浏览器的就是这两个号）
+  tcp_port: 7981
+  udp_port: 7982
+  # 不让它去问外部的服务"我的公网地址是什么"。告诉浏览器的地址由启动参数 --node-ip 给（compose.yaml）
+  use_external_ip: false
+  # 交给浏览器的找路服务器。不写的话会是 Google 的公共服务器（页面本来也不用它们），写成本机的中转服务
+  stun_servers:
+    - 127.0.0.1:3578
+
+# 签发入场凭证用的密钥，和 compose.yaml 里的 LIVEKIT_API_KEY、LIVEKIT_API_SECRET 一样。只在本机开发用
+keys:
+  vibechat-dev: local-dev-livekit-secret-0123456789abcdef
+
+room:
+  # 服务端管着谁能进、人数上限；这里只是兜底
+  max_participants: 20
+  empty_timeout: 60
+  departure_timeout: 20
+
+logging:
+  level: info

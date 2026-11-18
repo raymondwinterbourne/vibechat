@@ -1,0 +1,27 @@
+# 群通话的媒体转发服务（LiveKit）。只在启动了 calls 这一组时运行，说明见 docs/deploy.md。
+# 单台机器，不用 Redis：不写 redis 一节就是单机模式。
+# 密钥不写在这里：由 compose.yaml 通过环境变量 LIVEKIT_KEYS 给；告诉浏览器的公网地址由启动参数 --node-ip 给。
+#
+# Group-call media server. Keys come from LIVEKIT_KEYS, the public address from --node-ip (see compose.yaml).
+
+# 控制用的端口：只在 Docker 的内部网络里，由网页入口（/livekit）和服务端来连，不对外
+port: 7880
+
+rtc:
+  # 声音和画面走这两个端口：UDP 7882，UDP 不通时用 TCP 7881。所有人共用，要在防火墙上放开。
+  # 宿主机上的端口号必须和这里一样（LiveKit 告诉浏览器的就是这两个号）
+  tcp_port: 7881
+  udp_port: 7882
+  # 不去问外部的服务"我的公网地址是什么"，用 --node-ip 给的
+  use_external_ip: false
+
+room:
+  # 服务端管着谁能进、人数上限；这里只是兜底
+  max_participants: 20
+  # 房间建了没人进来，多少秒后关
+  empty_timeout: 60
+  # 人都走了，多少秒后关
+  departure_timeout: 20
+
+logging:
+  level: info

@@ -1,0 +1,27 @@
+# 运行数据，只存在于本机
+/data/
+
+# 手动下载的 Rust、Node 安装包（见 dev/Dockerfile）
+/dev/downloads/*
+!/dev/downloads/README.md
+
+# 构建产物
+/server/target/
+node_modules/
+dist/
+/client/apps/desktop/out/
+.pnpm-store/
+
+# 端到端测试的输出
+test-results/
+/client/e2e/screenshots-out/
+playwright-report/
+/client/e2e/.mail/
+
+.env
+# 这台机器特有的 compose 设置
+compose.override.yaml
+.DS_Store
+
+# 部署配置，各人按 scripts/deploy.conf.example 自己写
+/scripts/deploy.conf

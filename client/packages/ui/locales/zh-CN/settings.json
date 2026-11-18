@@ -1,0 +1,113 @@
+{
+  "title": "设置",
+  "profile": {
+    "title": "个人资料",
+    "changeAvatar": "更换头像",
+    "avatarUpdated": "头像已更新",
+    "nickname": "昵称",
+    "signature": "个性签名",
+    "id": "ID",
+    "changeId": "修改",
+    "changeIdTitle": "修改 ID",
+    "newId": "新的 ID",
+    "idHint": "6 到 20 位，以字母开头，只能包含字母、数字和下划线。修改后要用新的 ID 登录。",
+    "idUpdated": "ID 已修改"
+  },
+  "account": {
+    "title": "账号",
+    "changePassword": "修改密码",
+    "logout": "退出登录"
+  },
+  "admin": {
+    "title": "管理",
+    "open": "进入管理页面"
+  },
+  "adminEmail": {
+    "title": "管理员邮箱",
+    "explain": "忘记密码时，重置密码的链接会发到这个邮箱。",
+    "none": "没有设置",
+    "change": "修改",
+    "changeTitle": "修改邮箱",
+    "newEmail": "新邮箱",
+    "currentPassword": "当前密码",
+    "submit": "发送确认邮件",
+    "sent": "确认邮件已发到 {{email}}。打开里面的链接后，新邮箱才生效。"
+  },
+  "appearance": {
+    "title": "外观",
+    "light": "浅色",
+    "dark": "深色",
+    "system": "跟随系统"
+  },
+  "language": {
+    "title": "语言"
+  },
+  "notifications": {
+    "title": "提醒",
+    "system": "系统通知",
+    "on": "开启",
+    "off": "关闭",
+    "explain": "页面不在前台时，有新消息和好友申请会弹出系统通知。这个设置只对这台设备上的这个浏览器有效。",
+    "denied": "浏览器已经拒绝了这个网站的通知。要开启，请点地址栏旁边的网站设置，把“通知”改为允许，然后刷新页面。",
+    "unsupported": "这个浏览器不支持系统通知。"
+  },
+  "about": {
+    "title": "关于",
+    "server": "服务端",
+    "checking": "检查中…",
+    "ok": "运行正常，版本 {{version}}",
+    "degraded": "数据库不可用，版本 {{version}}",
+    "desktop": {
+      "title": "桌面客户端",
+      "installed": "版本 {{version}}",
+      "available": "macOS 版 {{version}}，{{size}}",
+      "newer": "有新版本 {{version}}，{{size}}",
+      "download": "下载",
+      "requirement": "只支持 Apple 芯片（M 系列）的 Mac。",
+      "install": "安装：打开下载的文件，把 VibeChat 拖进“应用程序”。",
+      "firstOpen": "第一次打开时系统会说无法验证它：到“系统设置 → 隐私与安全性”里点“仍要打开”。",
+      "update": "更新：先退出 VibeChat，再打开新下载的文件，拖进“应用程序”并选择“替换”。",
+      "prompt": "VibeChat 有 Mac 客户端了：关掉窗口也能收到消息。",
+      "entry": "下载桌面客户端",
+      "entryUpdate": "桌面客户端有新版本",
+      "updatePrompt": "桌面客户端有新版本 {{version}}",
+      "later": "以后再说",
+      "tooOldTitle": "需要新版桌面客户端",
+      "tooOld": "{{feature}}需要 {{required}} 或更新版本的桌面客户端，你现在用的是 {{installed}}。",
+      "mustUpdateTitle": "请更新桌面客户端",
+      "mustUpdate": "这个版本的桌面客户端（{{installed}}）已经不能再用，请更新到 {{required}} 或更新的版本。",
+      "noInstaller": "服务器上还没有可以下载的新版本，请联系管理员。",
+      "downloading": "正在下载 {{percent}}%（{{received}} / {{total}}）",
+      "cancelDownload": "取消下载",
+      "downloaded": "下载好了。在弹出的窗口里保存，然后打开它，按下面的说明安装。",
+      "downloadFailed": "下载没有成功，请检查网络后再试一次。",
+      "retryDownload": "重新下载"
+    },
+    "page": "页面",
+    "build": "构建 {{build}}",
+    "development": "开发版",
+    "releases": "更新说明"
+  },
+  "devices": {
+    "title": "登录设备",
+    "current": "本机",
+    "online": "在线",
+    "unknown": "未知设备",
+    "desktop": "桌面客户端 {{version}}",
+    "desktopUnknown": "桌面客户端",
+    "signedInAt": "登录于 {{time}}",
+    "lastActive": "最近活跃：{{time}}",
+    "justNow": "刚刚",
+    "ip": "网络地址 {{ip}}",
+    "signOut": "退出登录",
+    "signOutOthers": "退出其他所有设备",
+    "only": "只在这台设备上登录着。",
+    "confirmOne": "让这台设备退出登录？",
+    "confirmOneText": "{{device}}会马上退出登录，要再用它需要重新登录。",
+    "confirmOthers": "让其他所有设备退出登录？",
+    "confirmOthersText": "除了这台设备，你在其他设备上的登录都会马上结束。",
+    "done": "已让这台设备退出登录",
+    "doneOthers_one": "已让 {{count}} 台设备退出登录",
+    "doneOthers_other": "已让 {{count}} 台设备退出登录"
+  }
+}

@@ -1,0 +1,50 @@
+# VibeChat 对外的唯一入口（Caddy）。说明见 docs/deploy.md。
+#
+# SITE 是 .env 里写的站点：
+#   域名（例如 chat.example.com）  Caddy 自动申请 HTTPS 证书，80 跳到 443
+#   :80                            只有 IP 时：普通的 HTTP，通话、语音消息、通知用不了
+#
+# The single public entry point. SITE comes from .env: a domain name (automatic HTTPS) or :80 (plain HTTP, IP only).
+
+{
+	# 管理接口不对外，也不在容器里开
+	admin off
+}
+
+{$SITE} {
+	encode zstd gzip
+
+	# 服务端：接口和实时连接
+	handle /api/* {
+		reverse_proxy app:3488
+	}
+	handle /ws {
+		reverse_proxy app:3488
+	}
+
+	# 群通话：浏览器连网页地址下的 /livekit，转给 LiveKit 控制用的端口（去掉前面的 /livekit）。
+	# 声音和画面不经过这里，浏览器直接连 LiveKit 的 7881、7882
+	handle_path /livekit/* {
+		reverse_proxy livekit:7880
+	}
+
+	# 网页
+	handle {
+		root * /srv/vibechat
+
+		# 内容安全策略：和 client/apps/web/csp.ts 里的一样，改一处要两处一起改
+		header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'self' ws://{hostport} wss://{hostport}; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		header X-Content-Type-Options nosniff
+		header Referrer-Policy same-origin
+
+		# 文件名里带着内容摘要的可以一直缓存；页面本身和版本号每次都要问一下有没有更新
+		@hashed path /assets/*
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
+		@page path / /index.html /version.json
+		header @page Cache-Control "no-cache"
+
+		# 单页应用：不是文件的路径都交给 index.html
+		try_files {path} /index.html
+		file_server
+	}
+}

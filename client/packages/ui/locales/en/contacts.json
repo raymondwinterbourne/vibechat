@@ -1,0 +1,70 @@
+{
+  "title": "Contacts",
+  "empty": "No contacts yet",
+  "emptyHint": "Use the button at the top right to add someone by their ID",
+  "noMatch": "No matching contacts",
+  "placeholder": "Select a contact to view their profile",
+  "filter": "Filter contacts",
+  "back": "Back to contacts",
+  "newRequests_one": "{{count}} new friend request",
+  "newRequests_other": "{{count}} new friend requests",
+  "add": {
+    "title": "Add a friend",
+    "handle": "Their ID",
+    "find": "Find",
+    "message": "Message",
+    "messagePlaceholder": "Optional",
+    "defaultMessage": "I'm {{nickname}}",
+    "send": "Send request",
+    "sendAgain": "Send again",
+    "sent": "Request sent",
+    "myself": "This is you",
+    "alreadyFriend": "You are already friends",
+    "alreadySent": "You've already sent a request that hasn't been answered. Sending again updates the message.",
+    "theyAsked": "They have already sent you a friend request",
+    "viewProfile": "View profile"
+  },
+  "requests": {
+    "title": "New friends",
+    "kind": "Direction",
+    "received": "Received",
+    "sent": "Sent",
+    "noneReceived": "No friend requests yet",
+    "noneReceivedHint": "Requests from people who look you up by ID will show up here",
+    "noneSent": "You haven't sent any friend requests",
+    "noneSentHint": "Use the button at the top of Contacts to add someone by ID",
+    "accept": "Accept",
+    "reject": "Decline",
+    "acceptFrom": "Accept the friend request from {{name}}",
+    "rejectFrom": "Decline the friend request from {{name}}",
+    "status": {
+      "pending": "Waiting for a reply",
+      "accepted": "Accepted",
+      "rejected": "Declined"
+    },
+    "nowFriends": "{{name}} is now your friend"
+  },
+  "friend": {
+    "title": "Profile",
+    "nickname": "Nickname",
+    "handle": "ID",
+    "signature": "Signature",
+    "noSignature": "Not set",
+    "sendMessage": "Message",
+    "setRemark": "Set remark",
+    "remark": "Remark",
+    "remarkHint": "Only you can see it. Leave empty to show their nickname",
+    "remove": "Remove friend",
+    "removeTitle": "Remove this friend?",
+    "removeExplain": "After this, you and {{name}} are no longer in each other's contacts.",
+    "removed": "Friend removed"
+  },
+  "groups": {
+    "title": "Groups",
+    "empty": "You're not in any group yet",
+    "memberCount": "{{count}} members",
+    "emptyHint": "Start one with the button at the top of Chats"
+  },
+  "self": "{{name}} (me)",
+  "index": "Jump to letter"
+}

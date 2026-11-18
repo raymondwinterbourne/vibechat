@@ -1,0 +1,92 @@
+#!/bin/bash
+# 在 Mac 上运行的几件事：签名、启动、检查、做安装包、发布。只用系统自带的工具，不需要 Node。
+#
+# 应用本身是在容器里打出来的：
+#   docker exec vibechat sh -c 'cd client && pnpm --filter @vibechat/desktop package'
+#
+# 用法：
+#   scripts/mac sign            给打出来的应用做本机签名（Apple 芯片的 Mac 要求有签名才能运行）
+#   scripts/mac run [参数…]     启动。例如连本机的开发环境：scripts/mac run --server=http://127.0.0.1:8780
+#   scripts/mac check           自动检查：把应用启动起来，查它的各项行为。大约一分钟，期间窗口会出现几次
+#   scripts/mac dmg             做成安装包，放在 out/ 下
+#   scripts/mac publish <目录>  把安装包放到服务器存放安装包的目录里，放上去就能在设置里下载。
+#                               目录可以在本机，也可以在别的机器上（写成 主机:目录，走 ssh）
+set -euo pipefail
+
+here="$(cd "$(dirname "$0")/.." && pwd)"
+app="$here/out/VibeChat-darwin-arm64/VibeChat.app"
+
+if [ ! -d "$app" ]; then
+  echo "还没有打包：先在容器里运行 pnpm --filter @vibechat/desktop package" >&2
+  exit 1
+fi
+
+version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")"
+dmg="$here/out/VibeChat-$version-arm64.dmg"
+
+sign() {
+  # 没有开发者账号：只做本机签名（"-" 表示不用证书）
+  codesign --force --deep --sign - "$app"
+  codesign --verify --deep --strict "$app"
+}
+
+case "${1:-}" in
+  sign)
+    sign
+    echo "已签名：$app"
+    ;;
+  run)
+    shift
+    exec "$app/Contents/MacOS/VibeChat" "$@"
+    ;;
+  check)
+    sign
+    # 这台 Mac 上没有 Node：让应用里的 Electron 当作 Node 来运行检查的脚本
+    ELECTRON_RUN_AS_NODE=1 exec "$app/Contents/MacOS/VibeChat" "$here/scripts/check/run.mjs"
+    ;;
+  dmg)
+    sign
+    staging="$(mktemp -d)"
+    trap 'rm -rf "$staging"' EXIT
+    # 安装包里是应用本身，加上一个指向"应用程序"文件夹的快捷方式：打开后拖过去就装好了
+    cp -R "$app" "$staging/"
+    ln -s /Applications "$staging/Applications"
+    hdiutil create -volname VibeChat -srcfolder "$staging" -ov -format UDZO "$dmg" >/dev/null
+    echo "安装包：${dmg}（$(du -h "$dmg" | cut -f1)）"
+    ;;
+  publish)
+    target="${2:-}"
+    if [ -z "$target" ]; then
+      echo "要说明放到哪个目录，例如：scripts/mac publish ../../../data/desktop（本机的开发环境）。传到服务器用项目根目录的 scripts/deploy dmg" >&2
+      exit 1
+    fi
+    if [ ! -f "$dmg" ]; then
+      echo "还没有安装包：先运行 scripts/mac dmg" >&2
+      exit 1
+    fi
+    name="$(basename "$dmg")"
+    # 先用别的名字传，传完再改成正式的名字：服务器不会把传到一半的文件交给人下载
+    case "$target" in
+      *:*)
+        host="${target%%:*}"
+        dir="${target#*:}"
+        # VC_SSH_CONFIG 指向一份 ssh 配置时用它（主机的别名定义在那里面）
+        options=()
+        if [ -n "${VC_SSH_CONFIG:-}" ]; then options=(-F "$VC_SSH_CONFIG"); fi
+        ssh ${options[@]+"${options[@]}"} "$host" "mkdir -p '$dir'"
+        scp ${options[@]+"${options[@]}"} "$dmg" "$host:$dir/$name.part"
+        ssh ${options[@]+"${options[@]}"} "$host" "mv '$dir/$name.part' '$dir/$name'"
+        ;;
+      *)
+        mkdir -p "$target"
+        cp "$dmg" "$target/$name.part"
+        mv "$target/$name.part" "$target/$name"
+        ;;
+    esac
+    echo "已发布：$target/$name"
+    ;;
+  *)
+    sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'
+    exit 1
+    ;;
+esac

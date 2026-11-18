@@ -1,0 +1,30 @@
+# 跑自动化测试时用的 LiveKit，由 scripts/test-all 启动。
+# 测试里的浏览器和它在同一个网络里，所以不写 --node-ip，让它用容器自己的地址；端口和手工用的错开。
+# 和 scripts/e2e-stack 里的 LIVEKIT_URL、LIVEKIT_API_KEY、LIVEKIT_API_SECRET 对应
+port: 7890
+bind_addresses:
+  - 127.0.0.1
+
+rtc:
+  tcp_port: 7891
+  udp_port: 7892
+  use_external_ip: false
+  # 测试用的中转服务。不写的话 LiveKit 会把 Google 的公共服务器交给浏览器（页面本来也不用它们）
+  stun_servers:
+    - 127.0.0.1:3479
+
+keys:
+  vibechat-e2e: e2e-livekit-secret-0123456789abcdef-0123
+
+room:
+  max_participants: 20
+  empty_timeout: 60
+  departure_timeout: 20
+
+# 测试里假的麦克风只发短促的提示音，按默认的标准算不上"在说话"，这里调得灵敏一些
+audio:
+  active_level: 50
+  min_percentile: 5
+
+logging:
+  level: info

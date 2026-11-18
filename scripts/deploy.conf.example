@@ -1,0 +1,36 @@
+# scripts/deploy 的配置：把代码和桌面端安装包同步到哪台服务器、怎么连、怎么部署。
+# 用法：复制成 scripts/deploy.conf（不进 git）再按实际情况填写。
+# 换机器、换环境只改配置，不改脚本。要同时维护几个环境，各写一份，用 DEPLOY_CONF=文件 指定。
+#
+# 这是一段 shell，会被脚本读入。路径里的 ~ 会换成本人的 home。
+
+# 显示用的名字，也用在日志文件名里
+DEPLOY_NAME=example
+
+# ---- 怎么连 ----
+# 主机名或 IP。也可以写 ~/.ssh/config 里的别名，这时 DEPLOY_USER、DEPLOY_KEY 可以留空
+DEPLOY_HOST=server.example.com
+# 登录用户。留空则按 ssh 自己的规则
+DEPLOY_USER=ubuntu
+# 私钥。留空则按 ssh 自己的规则（ssh-agent、~/.ssh/config、默认的密钥）
+DEPLOY_KEY=~/.ssh/id_ed25519
+# 端口。留空则是 22 或 ~/.ssh/config 里写的
+DEPLOY_PORT=
+
+# ---- 服务器上的布置 ----
+# 下面按 docs/deploy.md 的部署方式举例：代码在服务器的 ~/vibechat，用 deploy/compose.yaml 运行。
+#
+# 服务器上检出的代码仓库：代码直接推到这里。
+# 那边的仓库要设 receive.denyCurrentBranch=updateInstead，推过去才会更新检出的文件
+DEPLOY_REPO=/home/ubuntu/vibechat
+# 推完代码后在服务器上执行的命令：构建并重启。成功时以 0 退出。用了通话的话加上 --profile calls
+DEPLOY_COMMAND='cd /home/ubuntu/vibechat/deploy && docker compose up -d --build'
+# 存放桌面端安装包的目录（数据卷里的 desktop 目录）。服务端从这里挑版本号最高的交给用户下载。
+# 数据卷在宿主机上的位置用 docker volume inspect vibechat-deploy_data 查，登录用户要能写这个目录
+DEPLOY_DMG_DIR=/var/lib/docker/volumes/vibechat-deploy_data/_data/desktop
+# 服务所在的 Docker 容器，只用来显示它的状态。不用容器就留空
+DEPLOY_CONTAINER=vibechat-deploy-app-1
+
+# ---- 验证 ----
+# 用户访问的地址：部署完后从本机请求 $DEPLOY_URL/api/health 确认服务正常
+DEPLOY_URL=https://chat.example.com

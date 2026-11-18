@@ -1,0 +1,51 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+# 工具链是绿色安装的（没有 rustup），这里声明项目要求的最低版本
+rust-version = "1.99"
+publish = false
+license = "MIT"
+
+[workspace.dependencies]
+vibechat-protocol = { path = "crates/protocol" }
+vibechat-core = { path = "crates/core" }
+vibechat-infra = { path = "crates/infra" }
+vibechat-migration = { path = "crates/migration" }
+
+argon2 = "0.6.0"
+base64 = "0.22.1"
+async-trait = "0.1.92"
+axum = { version = "0.8.9", features = ["ws"] }
+bytes = "1.12.1"
+futures-util = "0.3.34"
+getrandom = "0.4.3"
+# 通话中转服务的临时账号：HMAC-SHA1（coturn 的约定）
+hmac = "0.13.0"
+# 发邮件。TLS 用 rustls，和数据库连接用的是同一套
+lettre = { version = "0.11.23", default-features = false, features = ["builder", "hostname", "smtp-transport", "tokio1-rustls-tls"] }
+image = { version = "0.25.10", default-features = false, features = ["gif", "jpeg", "png", "webp"] }
+object_store = "0.14.2"
+percent-encoding = "2.3.2"
+# 调本机或内网的 LiveKit 的接口（群通话，F10）。只走普通的 HTTP，所以不带 TLS
+reqwest = { version = "0.12", default-features = false, features = ["json"] }
+sea-orm = { version = "2.0.4", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres", "sqlx-sqlite"] }
+sea-orm-migration = { version = "2.0.4", default-features = false, features = ["runtime-tokio-rustls", "sqlx-postgres", "sqlx-sqlite"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+sha1 = "0.11.0"
+sha2 = "0.11.0"
+tempfile = "3.27.0"
+thiserror = "2.0.21"
+tokio = { version = "1.53.1", features = ["fs", "io-util", "macros", "rt-multi-thread", "net", "signal", "sync", "time"] }
+tokio-tungstenite = "0.30.0"
+tower = "0.5"
+tower-http = { version = "0.7.1", features = ["catch-panic", "request-id", "trace"] }
+tracing = "0.1.44"
+tracing-subscriber = "0.3.23"
+ts-rs = "12.0.1"
+url = "2.5.8"
+uuid = { version = "1.27.0", features = ["v7"] }

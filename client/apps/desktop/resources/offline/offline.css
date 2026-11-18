@@ -1,0 +1,70 @@
+/* 连不上服务器时显示的页面。颜色和 Web 应用的浅色、深色外观一致。 */
+:root {
+  color-scheme: light dark;
+  --bg: #ffffff;
+  --fg: #1c1c1f;
+  --fg-2: #6b6b76;
+  --accent: #5b5bd6;
+  --on-accent: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f0f11;
+    --fg: #ededf0;
+    --fg-2: #9c9ca8;
+    --accent: #7c7cf0;
+  }
+}
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+body {
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  color: var(--fg);
+  font:
+    14px / 1.5 -apple-system,
+    BlinkMacSystemFont,
+    "PingFang SC",
+    "Helvetica Neue",
+    sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+}
+main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+}
+h1 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 500;
+}
+p {
+  margin: 0;
+  color: var(--fg-2);
+}
+#server {
+  font-size: 12px;
+}
+button {
+  margin-top: 12px;
+  height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  font-weight: 500;
+}
+button:disabled {
+  opacity: 0.5;
+}

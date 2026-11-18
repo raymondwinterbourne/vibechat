@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# 为端到端测试启动一套独立的前后端，保持运行直到被终止。在容器里执行。
+#
+# 与开发用的那一套互不影响：端口不同，数据库是每次新建的临时文件，
+# 前端跑的是构建结果而不是开发服务器。
+set -euo pipefail
+
+root="$(cd "$(dirname "$0")/.." && pwd)"
+web_port=3490
+api_port=3498
+data="$(mktemp -d)"
+# 没有邮件服务：邮件写成文件。放在客户端目录下面，测试容器才读得到（它只挂了这个目录）
+mail="$root/client/e2e/.mail"
+rm -rf "$mail"
+mkdir -p "$mail"
+# 一个假的桌面客户端安装包，版本号和内容与 client/e2e/tests/desktop.spec.ts 里的一致
+desktop="$data/desktop"
+mkdir -p "$desktop"
+printf 'not a real installer, just bytes for the tests\n' > "$desktop/VibeChat-0.9.0-arm64.dmg"
+
+cleanup() {
+  rm -rf "$data" "$mail"
+  kill 0
+}
+trap cleanup EXIT
+
+(cd "$root/server" && cargo build -p vibechat-server)
+(cd "$root/client" && pnpm build)
+
+# 管理员的初始密码与 client/e2e/tests/support.ts 里的一致。
+# 中转服务（通话用）、群通话的媒体转发服务（LiveKit）由 scripts/test-all 另起，
+# 配置见 dev/coturn/turnserver-test.conf、dev/livekit/livekit-test.yaml。
+# 测试里大量的登录和注册都来自同一个地址，所以把限速放得很宽。
+LISTEN_ADDR="127.0.0.1:$api_port" \
+PUBLIC_URL="http://127.0.0.1:$web_port" \
+DATABASE_URL="sqlite://$data/e2e.db?mode=rwc" \
+FILES_DIR="$data/files" \
+MAIL_DIR="$mail" \
+DESKTOP_DIR="$desktop" \
+ADMIN_EMAIL="admin@e2e.test" \
+ADMIN_INITIAL_PASSWORD="e2e-initial-1" \
+LOGINS_PER_MINUTE=100000 \
+REGISTRATIONS_PER_MINUTE=100000 \
+PASSWORD_RESETS_PER_MINUTE=100000 \
+TURN_URLS="turn:127.0.0.1:3479?transport=udp,turn:127.0.0.1:3479?transport=tcp" \
+TURN_SECRET="e2e-turn-secret" \
+LIVEKIT_URL="http://127.0.0.1:7890" \
+LIVEKIT_API_KEY="vibechat-e2e" \
+LIVEKIT_API_SECRET="e2e-livekit-secret-0123456789abcdef-0123" \
+CALL_RING_SECONDS=10 \
+CALL_GONE_SECONDS=5 \
+  "$root/server/target/debug/vibechat-server" &
+
+(cd "$root/client/apps/web" && SERVER_URL="http://127.0.0.1:$api_port" WEB_PORT="$web_port" LIVEKIT_URL="http://127.0.0.1:7890" pnpm exec vite preview) &
+
+wait -n
